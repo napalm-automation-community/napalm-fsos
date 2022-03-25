@@ -1,0 +1,3 @@
+include requirements.txt
+include napalm_fsos/templates/*.j2
+include napalm_fsos/utils/textfsm_templates/*.tpl
