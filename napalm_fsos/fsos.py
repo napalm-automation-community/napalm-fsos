@@ -45,10 +45,11 @@ class FsosDriver(NetworkDriver):
         self.url = "https://" + str(hostname) + "/command-api"
 
         cmds = None
+        response_format = 'json'
 
         self.payload = {
             "method": "executeCmds",
-            "params": [{"format": "json", "version": 1, "cmds": cmds}],
+            "params": [{"format": response_format, "version": 1, "cmds": cmds}],
             "jsonrpc": "2.0",
             "id": 0,
         }
@@ -69,15 +70,6 @@ class FsosDriver(NetworkDriver):
         """Implement the NAPALM method close (mandatory)"""
         pass
 
-    def get_interfaces(self):
-        cmds = ["show interface status"]
-        payload = self.payload
-        payload["params"][0]["cmds"] = cmds
-        ipdb.set_trace()
-        response = requests.post(self.url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
-        response = response.json()
-        return response['result'][0]['json']['interface status']
-
     def get_arp_table(self):
         pass
 
@@ -85,3 +77,62 @@ class FsosDriver(NetworkDriver):
         pass
 
     def get_environment(self):
+        pass
+
+    def get_facts(self):
+        pass
+
+    def get_interfaces(self):
+        cmds = ["show interface status"]
+        payload = self.payload
+        payload["params"][0]["cmds"] = cmds
+        response = requests.post(self.url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
+        response = response.json()
+        return response['result'][0]['json']['interface status']
+
+    def get_interfaces_counters(self):
+        pass
+
+    def get_interfaces_ip(self):
+        pass
+
+    def get_lldp_neighbors(self):
+        pass
+
+    def get_lldp_neighbors_detail(self):
+        pass
+
+    def get_mac_address_table(self):
+        pass
+
+    def get_network_instances(self):
+        pass
+
+    def get_ntp_peers():
+        pass
+
+    def get_ntp_servers(self):
+        # this function can't do json
+        cmds = ["show ntp associations"]
+        payload = self.payload
+        payload["params"][0]["cmds"] = cmds
+        payload["params"][0]["format"] = "text"
+        response = requests.post(self.url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
+        response = response.json()
+        return response['result'][0]['sourceDetails']
+
+    def get_ntp_stats(self):
+        pass
+
+    def get_route_to(self):
+        pass
+
+    def get_snmp_information(self):
+        pass
+
+    def get_users(self):
+        pass
+
+    def get_vlans(self):
+        pass
+
