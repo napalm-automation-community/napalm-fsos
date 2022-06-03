@@ -1,0 +1,4 @@
+Value NtpServers ((\d{3}\.?){4})
+
+Start
+  ^\s+${NtpServers} -> Record
