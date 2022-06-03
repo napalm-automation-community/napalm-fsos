@@ -59,34 +59,65 @@ class FsosDriver(NetworkDriver):
 
     def open(self):
         """Implement the NAPALM method open (mandatory)"""
+        # test json-rpc api
         cmds = ["enable"]
-        response = requests.post(self.url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
+        payload = self.payload
+        payload["params"][0]["cmds"] = cmds
+        response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
         if response.ok:
-            print("Worked!")
-        # pass
+            print("json-rpc is checked!")
+        # connect via netmiko
+        self.device = ConnectHandler(device_type='generic',
+                                     host=self.hostname,
+                                     username=self.username,
+                                     password=self.password,
+                                     timeout=self.timeout,
+                                     port=8222)
+
+        try:
+            self._scp_client = SCPConn(self.device)
+        except:
+            raise ConnectionException("Failed to open a scp connection")
 
 
     def close(self):
         """Implement the NAPALM method close (mandatory)"""
+        # close scp connection
+        self.device.dissconnect()
+        # TODO implement json-rpc close
         pass
 
     def get_arp_table(self):
         pass
 
-    def get_config(self):
-        pass
+    def get_config(retrieve='all', full=False, sanitized=False):
+
+        # TODO implement sanitize
+        cmds = ["show running-config", "show startup-config"]
+        payload = self.payload
+        payload["params"][0]["cmds"] = cmds
+        payload["params"][0]["format"] = "text"
+        response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
+        response = response.json()
+        configs_dict = {}
+        configs_dict["running"] = response['result'][0]['sourceDetails']
+        configs_dict["startup"] = response['result'][1]['sourceDetails']
+
+        return configs_dict
 
     def get_environment(self):
         pass
 
     def get_facts(self):
+        # show version can't return json
         pass
 
     def get_interfaces(self):
+
         cmds = ["show interface status"]
         payload = self.payload
         payload["params"][0]["cmds"] = cmds
-        response = requests.post(self.url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
+        response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
         response = response.json()
         return response['result'][0]['json']['interface status']
 
