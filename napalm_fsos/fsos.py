@@ -128,13 +128,50 @@ class FsosDriver(NetworkDriver):
         pass
 
     def get_lldp_neighbors(self):
-        pass
+
+        cmds = ["show lldp neighbor brief"]
+        payload = self.payload
+        payload["params"][0]["cmds"] = cmds
+        response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False).json()
+
+        lldp_dict = {}
+        for data in response['result']:
+            for info in data['json']['lldp neighbor brief info']:
+                lldp_dict[info['Local Port']] = [{'hostname':info['System Name'],'port':info['Remote Port']}]
+        return lldp_dict
 
     def get_lldp_neighbors_detail(self):
         pass
 
     def get_mac_address_table(self):
-        pass
+
+        cmds = ["show mac address-table"]
+        payload = self.payload
+        payload["params"][0]["cmds"] = cmds
+        payload["params"][0]["format"] = "text"
+        response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
+        response = response.json()
+
+        with open('utils/textfsm_templates/fsos_show_mac_address_table.textfsm') as template:
+            fsm = textfsm.TextFSM(template)
+            result = fsm.ParseText(response['result'][0]['sourceDetails'])
+
+            table = []
+            static = True
+            for r in result:
+                tmp_table = {}
+                tmp_table['mac'] = r[0]
+                tmp_table['interface'] = r[1]
+                tmp_table['vlan'] = r[2]
+
+                if r[3] == "dynamic":
+                    static = False
+
+                tmp_table['satic'] = static
+                table.append(tmp_table)
+
+            return table
+
 
     def get_network_instances(self):
         pass
