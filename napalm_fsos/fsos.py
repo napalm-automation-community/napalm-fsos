@@ -30,19 +30,25 @@ from napalm.base.exceptions import (
 import requests
 import json
 import ipdb
-
+import tempfile
+import os
+import textfsm
+from netmiko import ConnectHandler
+from netmiko import SCPConn
 
 class FsosDriver(NetworkDriver):
     """Napalm driver for Fsos."""
 
     def __init__(self, hostname, username, password, timeout=60, optional_args=None):
         """Constructor."""
-        self.device = None
+        self.device = 'generic'
         self.hostname = hostname
         self.username = username
         self.password = password
         self.timeout = timeout
-        self.url = "https://" + str(hostname) + "/command-api"
+        self.json_rpc_port = optional_args['json_rpc_port']
+        self._url = "https://" + str(hostname) + ":" + str(self.json_rpc_port) + "/command-api"
+        self._scp_client = None
 
         cmds = None
         response_format = 'json'
