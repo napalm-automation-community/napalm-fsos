@@ -112,14 +112,23 @@ class FsosDriver(NetworkDriver):
         pass
 
     def get_ntp_servers(self):
-        # this function can't do json
+
         cmds = ["show ntp associations"]
         payload = self.payload
         payload["params"][0]["cmds"] = cmds
         payload["params"][0]["format"] = "text"
-        response = requests.post(self.url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
+        response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
         response = response.json()
-        return response['result'][0]['sourceDetails']
+
+        with open('utils/textfsm_templates/fsos_show_ntp_servers.textfsm') as template:
+            fsm = textfsm.TextFSM(template)
+            result = fsm.ParseText(response['result'][0]['sourceDetails'])
+
+            ntp_servers_dict = {}
+            for r in result:
+                ntp_servers_dict[r[0]] = {}
+
+            return ntp_servers_dict
 
     def get_ntp_stats(self):
         pass
