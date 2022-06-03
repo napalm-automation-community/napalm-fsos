@@ -134,5 +134,48 @@ class FsosDriver(NetworkDriver):
         pass
 
     def get_vlans(self):
-        pass
+
+        cmds = ["show vlan all"]
+        payload = self.payload
+        payload["params"][0]["cmds"] = cmds
+        payload["params"][0]["format"] = "text"
+        response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
+        response = response.json()
+
+        with open('utils/textfsm_templates/fsos_show_vlan_all.textfsm') as template:
+            fsm = textfsm.TextFSM(template)
+            vlans = fsm.ParseText(response['result'][0]['sourceDetails'])
+
+            vlans_dict = {}
+            for vlan in vlans:
+                vlans_dict[vlan[0]] = {"name":vlan[1],"interfaces":vlan[2]}
+
+            return vlans_dict
+
+    def load_merge_candidate(self, filename=None, config=None):
+
+        if not filename and not config:
+            raise MergeConfigException('filename or config param must be provided.')
+
+        if filename is None:
+            temp_file = tempfile.NamedTemporaryFile(mode='w+')
+            temp_file.write(config)
+            temp_file.flush()
+            cfg_filename = temp_file.name
+        else:
+            cfg_filename = filename
+
+        if os.path.exists(cfg_filename) is True:
+            filename = os.path.basename(cfg_filename)
+            self._scp_client.scp_put_file(cfg_filename, filename)
+
+            # check if file was uploaded successfully
+            cmds = ["ls"]
+            payload = self.payload
+            payload["params"][0]["cmds"] = cmds
+            payload["params"][0]["format"] = "text"
+            response = requests.post(self._url,auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
+            response = response.json()
+            if filename not in response['result'][0]['sourceDetails']:
+                raise MergeConfigException("File wasn't found")
 
