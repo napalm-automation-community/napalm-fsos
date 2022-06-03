@@ -1,0 +1,7 @@
+Value Mac ((\S{4}.?){3})
+Value Port ((agg\d+)|(eth-0-\d+))
+Value Vlan (\d+)
+Value Type (\S+)
+
+Start
+  ^${Vlan}\s+${Mac}\s+${Type}\s+${Port} -> Continue.Record

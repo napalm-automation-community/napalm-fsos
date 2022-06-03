@@ -1,0 +1,11 @@
+Value VlanId (\d+)
+Value Name (\S+)
+Value List Interfaces (\S+\(\S\))
+
+Start
+  ^\d+ -> Continue.Record
+  ^${VlanId}\s+${Name}\s+\S+\s+\d+\s*$$
+  ^${VlanId}\s+${Name}\s+\S+\s+\d+\s+${Interfaces} -> Continue
+  ^\d+\s+(?:\S+\s+){4}${Interfaces}\s* -> Continue
+  ^\s+${Interfaces}\s* -> Continue
+  ^\s+(?:\S+\s+){1}${Interfaces}\s* -> Continue
