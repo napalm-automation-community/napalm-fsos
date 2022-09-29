@@ -11,8 +11,17 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations under
 # the License.
-
 """napalm-fsos package."""
-from napalm_fsos.fsos import FsosDriver  # noqa
+# Import stdlib
+import pkg_resources
+
+# Import local modules
+from napalm_fsos.fsos import FsosDriver
+
+try:
+    __version__ = pkg_resources.get_distribution('napalm_fsos').version
+except pkg_resources.DistributionNotFound:
+    __version__ = "Not installed"
+
 
 __all__ = ('FsosDriver',)
