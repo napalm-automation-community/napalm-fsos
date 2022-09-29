@@ -22,6 +22,8 @@ service rpc-api enable ssl ssl-port <your_port>
 service rpc-api auth-mode basic
 ```
 
+After you defined the rpc-api port, you will need to add NAPALM arguments: "json_rpc_port='<your_port>'"
+
 You also need to configure a username and password to authenticate to the API
 ```
 username <your_username> privilege 4 secret <your_password>
