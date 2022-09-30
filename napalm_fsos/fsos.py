@@ -90,7 +90,7 @@ class FsosDriver(NetworkDriver):
     def close(self):
         """Implement the NAPALM method close (mandatory)"""
         # close scp connection
-        self.device.dissconnect()
+        self.device.disconnect()
         # TODO implement json-rpc close
         pass
 
