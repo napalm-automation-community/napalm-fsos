@@ -24,7 +24,7 @@ service rpc-api auth-mode basic
 
 After you defined the rpc-api port, you will need to add two NAPALM arguments, assuming SSH port is default port 22:
 "json_rpc_port='<json_rpc_port>'"
-"sshport='22'"
+"ssh_port='22'"
 
 You also need to configure a username and password to authenticate to the API (Privilege = 4 is the min to get it working)
 ```

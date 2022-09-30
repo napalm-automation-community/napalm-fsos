@@ -47,7 +47,7 @@ class FsosDriver(NetworkDriver):
         self.password = password
         self.timeout = timeout
         self.json_rpc_port = optional_args['json_rpc_port']
-        self.sshporr = optional_args['ssh_port']
+        self.ssh_port = optional_args['ssh_port']
         self._url = "https://" + str(hostname) + ":" + str(self.json_rpc_port) + "/command-api"
         self._scp_client = None
 
@@ -79,7 +79,7 @@ class FsosDriver(NetworkDriver):
                                      username=self.username,
                                      password=self.password,
                                      timeout=self.timeout,
-                                     port=self.sshport)
+                                     port=self.ssh_port)
 
         try:
             self._scp_client = SCPConn(self.device)
