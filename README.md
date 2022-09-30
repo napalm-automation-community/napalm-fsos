@@ -18,13 +18,15 @@ pip3 install napalm-fsos
 
 In order to use the driver you need to enable the json-rpc API:
 ```
-service rpc-api enable ssl ssl-port <your_port>
+service rpc-api enable ssl ssl-port <json_rpc_port>
 service rpc-api auth-mode basic
 ```
 
-After you defined the rpc-api port, you will need to add NAPALM arguments: "json_rpc_port='<your_port>'"
+After you defined the rpc-api port, you will need to add two NAPALM arguments, assuming SSH port is default port 22:
+"json_rpc_port='<json_rpc_port>'"
+"sshport='22'"
 
-You also need to configure a username and password to authenticate to the API
+You also need to configure a username and password to authenticate to the API (Privilege = 4 is the min to get it working)
 ```
 username <your_username> privilege 4 secret <your_password>
 ```
