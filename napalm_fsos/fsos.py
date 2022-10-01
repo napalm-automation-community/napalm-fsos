@@ -47,6 +47,7 @@ class FsosDriver(NetworkDriver):
         self.password = password
         self.timeout = timeout
         self.json_rpc_port = optional_args['json_rpc_port']
+        self.ssh_port = optional_args['ssh_port']
         self._url = "https://" + str(hostname) + ":" + str(self.json_rpc_port) + "/command-api"
         self._scp_client = None
 
@@ -61,7 +62,7 @@ class FsosDriver(NetworkDriver):
         }
 
         if optional_args is None:
-            optional_args = {}
+            print
 
     def open(self):
         """Implement the NAPALM method open (mandatory)"""
@@ -78,7 +79,7 @@ class FsosDriver(NetworkDriver):
                                      username=self.username,
                                      password=self.password,
                                      timeout=self.timeout,
-                                     port=8222)
+                                     port=self.ssh_port)
 
         try:
             self._scp_client = SCPConn(self.device)
@@ -89,7 +90,7 @@ class FsosDriver(NetworkDriver):
     def close(self):
         """Implement the NAPALM method close (mandatory)"""
         # close scp connection
-        self.device.dissconnect()
+        self.device.disconnect()
         # TODO implement json-rpc close
         pass
 
@@ -141,13 +142,24 @@ class FsosDriver(NetworkDriver):
         response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False).json()
 
         lldp_dict = {}
+        print (response['result'])
         for data in response['result']:
             for info in data['json']['lldp neighbor brief info']:
                 lldp_dict[info['Local Port']] = [{'hostname':info['System Name'],'port':info['Remote Port']}]
         return lldp_dict
 
     def get_lldp_neighbors_detail(self):
-        pass
+        cmds = ["show lldp neighbor brief"]
+        payload = self.payload
+        payload["params"][0]["cmds"] = cmds
+        response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False).json()
+
+        lldp_dict = {}
+        for data in response['result']:
+            for info in data['json']['lldp neighbor brief info']:
+                lldp_dict[info['Local Port']] = [{'parent_interface':'','remote_chassis_id':'','remote_system_name':info['System Name'],'remote_port':info['Remote Port'],'remote_port_description':'','remote_system_capab':'','remote_system_description':'','remote_system_enable_capab':''}]
+
+        return lldp_dict
 
     def get_mac_address_table(self):
 
