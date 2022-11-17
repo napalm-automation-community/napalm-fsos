@@ -33,6 +33,7 @@ import ipdb
 import tempfile
 import os
 import textfsm
+import difflib
 from netmiko import ConnectHandler
 from netmiko import SCPConn
 
@@ -50,11 +51,13 @@ class FsosDriver(NetworkDriver):
         self.ssh_port = optional_args['ssh_port']
         self._url = "https://" + str(hostname) + ":" + str(self.json_rpc_port) + "/command-api"
         self._scp_client = None
+        self._candidate_config_name = None
+        self._candidate_config_content = None
 
         cmds = None
         response_format = 'json'
 
-        self.payload = {
+        self._payload = {
             "method": "executeCmds",
             "params": [{"format": response_format, "version": 1, "cmds": cmds}],
             "jsonrpc": "2.0",
@@ -64,11 +67,16 @@ class FsosDriver(NetworkDriver):
         if optional_args is None:
             print
 
+    @staticmethod
+    def _get_config_content(file_path):
+        with open(file_path, 'r') as f:
+            return f.read()
+
     def open(self):
         """Implement the NAPALM method open (mandatory)"""
         # test json-rpc api
         cmds = ["enable"]
-        payload = self.payload
+        payload = self._payload
         payload["params"][0]["cmds"] = cmds
         response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
         if response.ok:
@@ -97,11 +105,11 @@ class FsosDriver(NetworkDriver):
     def get_arp_table(self):
         pass
 
-    def get_config(retrieve='all', full=False, sanitized=False):
+    def get_config(self, retrieve='all', full=False, sanitized=False):
 
         # TODO implement sanitize
         cmds = ["show running-config", "show startup-config"]
-        payload = self.payload
+        payload = self._payload
         payload["params"][0]["cmds"] = cmds
         payload["params"][0]["format"] = "text"
         response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
@@ -122,7 +130,7 @@ class FsosDriver(NetworkDriver):
     def get_interfaces(self):
 
         cmds = ["show interface status"]
-        payload = self.payload
+        payload = self._payload
         payload["params"][0]["cmds"] = cmds
         response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
         response = response.json()
@@ -137,7 +145,7 @@ class FsosDriver(NetworkDriver):
     def get_lldp_neighbors(self):
 
         cmds = ["show lldp neighbor brief"]
-        payload = self.payload
+        payload = self._payload
         payload["params"][0]["cmds"] = cmds
         response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False).json()
 
@@ -164,7 +172,7 @@ class FsosDriver(NetworkDriver):
     def get_mac_address_table(self):
 
         cmds = ["show mac address-table"]
-        payload = self.payload
+        payload = self._payload
         payload["params"][0]["cmds"] = cmds
         payload["params"][0]["format"] = "text"
         response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
@@ -200,7 +208,7 @@ class FsosDriver(NetworkDriver):
     def get_ntp_servers(self):
 
         cmds = ["show ntp associations"]
-        payload = self.payload
+        payload = self._payload
         payload["params"][0]["cmds"] = cmds
         payload["params"][0]["format"] = "text"
         response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
@@ -231,7 +239,7 @@ class FsosDriver(NetworkDriver):
     def get_vlans(self):
 
         cmds = ["show vlan all"]
-        payload = self.payload
+        payload = self._payload
         payload["params"][0]["cmds"] = cmds
         payload["params"][0]["format"] = "text"
         response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
@@ -266,11 +274,36 @@ class FsosDriver(NetworkDriver):
 
             # check if file was uploaded successfully
             cmds = ["ls"]
-            payload = self.payload
+            payload = self._payload
             payload["params"][0]["cmds"] = cmds
             payload["params"][0]["format"] = "text"
             response = requests.post(self._url,auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
             response = response.json()
             if filename not in response['result'][0]['sourceDetails']:
                 raise MergeConfigException("File wasn't found")
+            # store candidate config name/content for later use
+            self._candidate_config_name = filename
+            self._candidate_config_content = self._get_config_content(cfg_filename)
+
+    def compare_config(self):
+
+        running_config = self.get_config()["running"]
+        running_config = running_config.splitlines(1)
+        running_config.pop(0)
+        running_config.pop(0)
+        candidate_config = self._candidate_config_content.splitlines(1)
+        diff = difflib.unified_diff(running_config, candidate_config)
+        return ''.join(diff)
+
+    def commit_config(self, message='', revert_in=None):
+
+        cmds = [f"copy flash:/{self._candidate_config_name} running-config"]
+        payload = self._payload
+        payload["params"][0]["cmds"] = cmds
+        payload["params"][0]["format"] = "text"
+        response = requests.post(self._url,auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
+        response = response.json()
+        print(response)
+
+
 
