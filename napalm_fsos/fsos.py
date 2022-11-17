@@ -283,4 +283,15 @@ class FsosDriver(NetworkDriver):
         diff = difflib.unified_diff(running_config, candidate_config)
         return ''.join(diff)
 
+    def commit_config(self, message='', revert_in=None):
+
+        cmds = [f"copy flash:/{self._candidate_config_name} running-config"]
+        payload = self._payload
+        payload["params"][0]["cmds"] = cmds
+        payload["params"][0]["format"] = "text"
+        response = requests.post(self._url,auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
+        response = response.json()
+        print(response)
+
+
 
