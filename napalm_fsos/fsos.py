@@ -81,8 +81,9 @@ class FsosDriver(NetworkDriver):
         payload = self._payload
         payload["params"][0]["cmds"] = cmds
         response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
-        if response.ok:
-            print("json-rpc is checked!")
+        if not response.ok:
+            # print("json-rpc is checked!")
+            raise ConnectionException(f"Could not connect to {self.hostname}:{self.json_rpc_port}")
         # connect via netmiko
         self.device = ConnectHandler(device_type='generic',
                                      host=self.hostname,
