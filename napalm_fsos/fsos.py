@@ -37,6 +37,8 @@ import difflib
 from netmiko import ConnectHandler
 from netmiko import SCPConn
 
+requests.packages.urllib3.disable_warnings()
+
 class FsosDriver(NetworkDriver):
     """Napalm driver for Fsos."""
 
