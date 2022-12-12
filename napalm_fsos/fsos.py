@@ -153,7 +153,6 @@ class FsosDriver(NetworkDriver):
         response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False).json()
 
         lldp_dict = {}
-        print (response['result'])
         for data in response['result']:
             for info in data['json']['lldp neighbor brief info']:
                 lldp_dict[info['Local Port']] = [{'hostname':info['System Name'],'port':info['Remote Port']}]
