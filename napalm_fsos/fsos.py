@@ -150,6 +150,7 @@ class FsosDriver(NetworkDriver):
         cmds = ["show lldp neighbor brief"]
         payload = self._payload
         payload["params"][0]["cmds"] = cmds
+        payload["params"][0]["format"] = "json"
         response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False).json()
 
         lldp_dict = {}
@@ -160,8 +161,9 @@ class FsosDriver(NetworkDriver):
 
     def get_lldp_neighbors_detail(self):
         cmds = ["show lldp neighbor brief"]
-        payload = self.payload
+        payload = self._payload
         payload["params"][0]["cmds"] = cmds
+        payload["params"][0]["format"] = "json"
         response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False).json()
 
         lldp_dict = {}
