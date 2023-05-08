@@ -19,6 +19,7 @@ Napalm driver for Fsos.
 Read https://napalm.readthedocs.io for more information.
 """
 
+from napalm.base import helpers
 from napalm.base import NetworkDriver
 from napalm.base.exceptions import (
     ConnectionException,
@@ -34,10 +35,17 @@ import tempfile
 import os
 import textfsm
 import difflib
+import re
 from netmiko import ConnectHandler
 from netmiko import SCPConn
 
 requests.packages.urllib3.disable_warnings()
+
+# Easier to store these as constants
+HOUR_SECONDS = 3600
+DAY_SECONDS = 24 * HOUR_SECONDS
+WEEK_SECONDS = 7 * DAY_SECONDS
+YEAR_SECONDS = 365 * DAY_SECONDS
 
 class FsosDriver(NetworkDriver):
     """Napalm driver for Fsos."""
@@ -105,6 +113,31 @@ class FsosDriver(NetworkDriver):
         # TODO implement json-rpc close
         pass
 
+    @staticmethod
+    def parse_uptime(uptime_str):
+        # Initialize to zero
+        (years, weeks, days, hours, minutes, seconds) = (0, 0, 0, 0, 0, 0)
+
+        uptime_str = uptime_str.strip()
+        time_list = uptime_str.split(", ")
+        for element in time_list:
+            if re.search(" years", element):
+                years = int(element.split(" years")[0])
+            elif re.search(" weeks", element):
+                weeks = int(element.split(" weeks")[0])
+            elif re.search(" days", element):
+                days = int(element.split(" days")[0])
+            elif re.search(" hours", element):
+                hours = int(element.split(" hours")[0])
+            elif re.search(" minutes", element):
+                minutes = int(element.split(" minutes")[0])
+            elif re.search(" seconds", element):
+                seconds = float(element.split(" seconds")[0])
+
+        uptime_sec = ((years * YEAR_SECONDS) + (weeks * WEEK_SECONDS) + (
+            days * DAY_SECONDS) + (hours * 3600) + (minutes * 60) + seconds)
+        return uptime_sec
+
     def get_arp_table(self):
         pass
 
@@ -124,11 +157,90 @@ class FsosDriver(NetworkDriver):
         return configs_dict
 
     def get_environment(self):
-        pass
+        cmds = ["show environment", "show memory summary total"]
+        payload = self._payload
+        payload["params"][0]["cmds"] = cmds
+        payload["params"][0]["format"] = "json"
+        response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
+        response = response.json()
+
+        environment_counters = {"fans": {}, "temperature": {}, "power": {}, "cpu": {}, "memory": {}}
+
+        for fan in response['result'][0]['json']['environment information']['0']['Fan tray status']['1']['Fan status']:
+            environment_counters["fans"][fan] = {
+                "status" : response['result'][0]['json']['environment information']['0']['Fan tray status']['1']['Fan status'][fan]["Status"] == "OK"
+            }
+
+        for psu in response['result'][0]['json']['environment information']['0']['Power status']:
+            environment_counters["power"][psu] = {
+                "status" : response['result'][0]['json']['environment information']['0']['Power status'][psu]["Power"] == "OK"
+            }
+
+        for sensor in response['result'][0]['json']['environment information']['0']['Sensor status']:
+            environment_counters["temperature"][sensor] = {
+                "temperature" : response['result'][0]['json']['environment information']['0']['Sensor status'][sensor]["Temperature"]
+            }
+
+        environment_counters["memory"] = {
+            "available_ram": response['result'][1]['json']['Freed memory'],
+            "used_ram": response['result'][1]['json']['Used memory']
+        }
+
+        cmds = ["show processes cpu history"]
+        payload = self._payload
+        payload["params"][0]["cmds"] = cmds
+        payload["params"][0]["format"] = "text"
+        response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
+        response = response.json()
+
+        cpu = response['result'][0]['sourceDetails']
+        environment_counters["cpu"]["0"] = { "%usage": re.findall('\d\.\d\d%', cpu)[1] }
+
+        return environment_counters
 
     def get_facts(self):
-        # show version can't return json
-        pass
+        vendor = "FS.com Inc."
+        cmds = ["show version", "show interface status"]
+        payload = self._payload
+        payload["params"][0]["cmds"] = cmds
+        payload["params"][0]["format"] = "text"
+        response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
+        response = response.json()
+
+        for line in response['result'][0]['sourceDetails'].splitlines():
+            if "uptime" in line:
+                hostname, uptime_str = line.split(" uptime is ")
+                uptime = self.parse_uptime(uptime_str)
+
+            if "FSOS Software" in line:
+                _, os_version = line.split(" Version ")
+                os_version = os_version.strip()
+
+            if "Hardware Type" in line:
+                _, model = line.split(" is ")
+                model = model.strip()
+
+            if "System serial number" in line:
+                _, serial_number = line.split(" is ")
+                serial_number = serial_number.strip()
+
+        interface_list = []
+        for line in response['result'][1]['sourceDetails'].splitlines():
+            if line == "":
+                continue
+            elif line.startswith('eth'):
+                interface = line.split()[0]
+                interface_list.append(helpers.canonical_interface_name(interface))
+
+        return {
+            "uptime": int(uptime),
+            "vendor": vendor,
+            "os_version": str(os_version),
+            "model": str(model),
+            "hostname": str(hostname),
+            "serial_number": str(serial_number),
+            "interface_list": interface_list,
+        }
 
     def get_interfaces(self):
 
