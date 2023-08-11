@@ -294,7 +294,7 @@ class FsosDriver(NetworkDriver):
         response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
         response = response.json()
 
-        with open('utils/textfsm_templates/fsos_show_mac_address_table.textfsm') as template:
+        with open(os.path.join(os.path.dirname(__file__), 'utils/textfsm_templates/fsos_show_mac_address_table.textfsm')) as template:
             fsm = textfsm.TextFSM(template)
             result = fsm.ParseText(response['result'][0]['sourceDetails'])
 
@@ -330,7 +330,7 @@ class FsosDriver(NetworkDriver):
         response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
         response = response.json()
 
-        with open('utils/textfsm_templates/fsos_show_ntp_servers.textfsm') as template:
+        with open(os.path.join(os.path.dirname(__file__), 'utils/textfsm_templates/fsos_show_ntp_servers.textfsm')) as template:
             fsm = textfsm.TextFSM(template)
             result = fsm.ParseText(response['result'][0]['sourceDetails'])
 
@@ -361,7 +361,7 @@ class FsosDriver(NetworkDriver):
         response = requests.post(self._url, auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
         response = response.json()
 
-        with open('utils/textfsm_templates/fsos_show_vlan_all.textfsm') as template:
+        with open(os.path.join(os.path.dirname(__file__), 'utils/textfsm_templates/fsos_show_vlan_all.textfsm')) as template:
             fsm = textfsm.TextFSM(template)
             vlans = fsm.ParseText(response['result'][0]['sourceDetails'])
 
