@@ -30,8 +30,6 @@ from napalm.base.exceptions import (
     NapalmException
 )
 import requests
-import json
-import ipdb
 import tempfile
 import os
 import textfsm
