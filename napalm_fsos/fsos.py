@@ -121,9 +121,8 @@ class FsosDriver(NetworkDriver):
             payload["params"][0]["cmds"] = cmds
             payload["params"][0]["format"] = format
             response = requests.post(self._url,auth=requests.auth.HTTPBasicAuth(self.username, self.password), json=payload, verify=False)
-            status_code = response.status_code
             response = response.json()
-            return response, status_code
+            return response
 
     @staticmethod
     def parse_uptime(uptime_str):
@@ -157,7 +156,7 @@ class FsosDriver(NetworkDriver):
 
         # TODO implement sanitize
         cmds = ["show running-config", "show startup-config"]
-        response = self.send_rpc_commands(cmds, "text")[0]
+        response = self.send_rpc_commands(cmds, "text")
 
         configs_dict = {}
         configs_dict["running"] = response['result'][0]['sourceDetails']
@@ -307,7 +306,6 @@ class FsosDriver(NetworkDriver):
         cmds = ["show ntp associations"]
         print(self.send_rpc_commands(cmds, "json"))
         response = self.send_rpc_commands(cmds, "text")
-        print(response['result'][0]['sourceDetails'])
 
         with open(os.path.join(os.path.dirname(__file__), 'utils/textfsm_templates/fsos_show_ntp_servers.textfsm')) as template:
             fsm = textfsm.TextFSM(template)
@@ -376,7 +374,7 @@ class FsosDriver(NetworkDriver):
                 cmds = ["ls"]
                 response = self.send_rpc_commands(cmds, "text")
 
-                if filename not in response[0]['result'][0]['sourceDetails']:
+                if filename not in response['result'][0]['sourceDetails']:
                     raise MergeConfigException("File wasn't found")
                 # store candidate config name/content for later use
                 self._candidate_config_name = filename
@@ -481,7 +479,7 @@ class FsosDriver(NetworkDriver):
                             error = False
                             cmds.append("no "+cmd.lstrip().rsplit(' ', i)[0])
 
-                            response = self.send_rpc_commands(cmds)[0]
+                            response = self.send_rpc_commands(cmds)
                             print(response)
 
                             for item in response["result"]:
