@@ -1,5 +1,4 @@
 netutils
 netmiko
-difflib
 textfsm
 napalm
