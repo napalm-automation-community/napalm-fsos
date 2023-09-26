@@ -421,7 +421,7 @@ class FsosDriver(NetworkDriver):
                  },
                  {
                      "name": "vlans",
-                     "ordered": True,
+                     "ordered": False,
                      "section": [
                          "vlan"
                      ]
@@ -435,7 +435,7 @@ class FsosDriver(NetworkDriver):
                  },
                 {
                      "name": "line",
-                     "ordered": True,
+                     "ordered": False,
                      "section": [
                          "line"
                      ]
@@ -445,6 +445,7 @@ class FsosDriver(NetworkDriver):
             self.iosdiff = compliance(features, ''.join(running_config), ''.join(candidate_config), "cisco_ios", "string")
 
             return ''.join(self.diff)
+            #return self.iosdiff
         elif self._candidate_config_content == None:
             raise MergeConfigException("Couldn't load config candidate")
             return None
@@ -456,6 +457,22 @@ class FsosDriver(NetworkDriver):
 
                 has_changed = False
                 cmds = ["conf t"]
+                if key=="vlans":
+                    cmds.append("vlan database")
+
+                # add missing lines
+                for cmd in self.iosdiff[key]["missing"].splitlines():
+                    has_changed = False
+                    cmds.append(cmd.lstrip())
+                response = self.send_rpc_commands(cmds)
+                print(response)
+        
+        # compare configs again
+        self.compare_config()
+
+        for key in self.iosdiff:
+            if not self.iosdiff[key]["compliant"]:
+                print("ERR: %s is not compliant" % key)
 
                 # remove additional configs
                 # this process is rather try and error as it's difficult to identify the exact
@@ -502,12 +519,6 @@ class FsosDriver(NetworkDriver):
                     has_changed = True
                     response = self.send_rpc_commands(cmds)
                     cmds = ["conf t"]
-
-                # add missing lines
-                for cmd in self.iosdiff[key]["missing"].splitlines():
-                    has_changed = False
-                    cmds.append(cmd)
-                response = self.send_rpc_commands(cmds)
 
                 if has_changed:
                     # send add commands and save
