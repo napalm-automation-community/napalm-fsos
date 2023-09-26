@@ -1,1 +1,4 @@
-ipdb
+netutils
+netmiko
+textfsm
+napalm

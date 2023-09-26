@@ -11,7 +11,7 @@ with open("requirements.txt", "r") as fs:
 
 setup(
     name="napalm-fsos",
-    version="0.1.0",
+    version="0.1.2",
     packages=find_packages(),
     author="Maximiliano Estudies",
     author_email="maxiestudies@gmail.com",
